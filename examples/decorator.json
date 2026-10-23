@@ -1,0 +1,41 @@
+{
+  "title": "Decorator Class Diagram",
+  "classes": [
+    {
+      "name": "Server",
+      "kind": "abstract",
+      "operations": [{ "text": "+getDescription() : String", "abstract": true }]
+    },
+    { "name": "HighEndCPU", "operations": ["+getDescription() : String"] },
+    { "name": "NormalCPU", "operations": ["+getDescription() : String"] },
+    {
+      "name": "ResourceDecorator",
+      "kind": "abstract",
+      "attributes": ["#server : Server"],
+      "operations": ["#ResourceDecorator(server : Server)"]
+    },
+    { "name": "HighMemory", "operations": ["+HighMemory(server : Server)", "+getDescription() : String"] },
+    { "name": "LowMemory", "operations": ["+LowMemory(server : Server)", "+getDescription() : String"] },
+    { "name": "HighEndGPU", "operations": ["+HighEndGPU(server : Server)", "+getDescription() : String"] },
+    { "name": "BasicGPU", "operations": ["+BasicGPU(server : Server)", "+getDescription() : String"] }
+  ],
+  "layout": [
+    [{ "name": "Server", "span": 6 }],
+    ["HighEndCPU", "NormalCPU", { "name": "ResourceDecorator", "span": 4 }],
+    [null, null, "HighMemory", "LowMemory", "HighEndGPU", "BasicGPU"]
+  ],
+  "sameWidth": [
+    ["HighEndCPU", "NormalCPU"],
+    ["HighMemory", "LowMemory", "HighEndGPU", "BasicGPU"]
+  ],
+  "relations": [
+    { "from": "HighEndCPU", "to": "Server", "type": "generalization" },
+    { "from": "NormalCPU", "to": "Server", "type": "generalization" },
+    { "from": "ResourceDecorator", "to": "Server", "type": "generalization" },
+    { "from": "ResourceDecorator", "to": "Server", "type": "association" },
+    { "from": "HighMemory", "to": "ResourceDecorator", "type": "generalization" },
+    { "from": "LowMemory", "to": "ResourceDecorator", "type": "generalization" },
+    { "from": "HighEndGPU", "to": "ResourceDecorator", "type": "generalization" },
+    { "from": "BasicGPU", "to": "ResourceDecorator", "type": "generalization" }
+  ]
+}

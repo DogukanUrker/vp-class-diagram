@@ -1,0 +1,36 @@
+{
+  "title": "Observer Class Diagram",
+  "classes": [
+    {
+      "name": "Subject",
+      "kind": "interface",
+      "operations": ["+registerObserver(o : Observer)", "+removeObserver(o : Observer)", "+notifyObservers()"]
+    },
+    { "name": "Observer", "kind": "interface", "operations": ["+update(temperature : float)"] },
+    { "name": "ConsoleLogger", "operations": ["+update(temperature : float)"] },
+    {
+      "name": "WeatherStation",
+      "attributes": ["-observers : List<Observer>", "-temperature : float"],
+      "operations": [
+        "+registerObserver(o : Observer)",
+        "+removeObserver(o : Observer)",
+        "+notifyObservers()",
+        "+setTemperature(temperature : float)"
+      ]
+    },
+    { "name": "PhoneDisplay", "operations": ["+update(temperature : float)"] },
+    { "name": "TvDisplay", "operations": ["+update(temperature : float)"] }
+  ],
+  "layout": [
+    ["Subject", "Observer", "ConsoleLogger"],
+    ["WeatherStation", "PhoneDisplay", "TvDisplay"]
+  ],
+  "relations": [
+    { "from": "WeatherStation", "to": "Subject", "type": "realization" },
+    { "from": "ConsoleLogger", "to": "Observer", "type": "realization" },
+    { "from": "PhoneDisplay", "to": "Observer", "type": "realization" },
+    { "from": "TvDisplay", "to": "Observer", "type": "realization" },
+    { "from": "WeatherStation", "to": "Observer", "type": "association", "toLabel": "0..*" },
+    { "from": "Subject", "to": "Observer", "type": "dependency" }
+  ]
+}

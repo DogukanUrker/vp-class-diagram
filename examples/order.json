@@ -1,0 +1,39 @@
+{
+  "title": "Order System",
+  "classes": [
+    { "name": "Customer", "attributes": ["-name : String", "-address"] },
+    {
+      "name": "Order",
+      "attributes": ["-date : date", "-status : String"],
+      "operations": ["+calcSubTotal()", "+calcTax()", "+calcTotal()", "+calcTotalWeight()"]
+    },
+    {
+      "name": "OrderDetail",
+      "attributes": ["-quantity", "-taxStatus : String"],
+      "operations": ["+calcSubTotal()", "+calcWeight()", "+calcTax()"]
+    },
+    {
+      "name": "Item",
+      "attributes": ["-shippingWeight", "-description : String"],
+      "operations": ["+getPriceForQuantity()", "+getTax()", "+inStock()"]
+    },
+    { "name": "Payment", "kind": "abstract", "attributes": ["-amount : float"] },
+    { "name": "Cash", "attributes": ["-cashTendered : float"] },
+    { "name": "Check", "attributes": ["-name : String", "-bankID : String"], "operations": ["+authorized()"] },
+    { "name": "Credit", "attributes": ["-number : String", "-type : String", "-expDate"], "operations": ["+authorized()"] }
+  ],
+  "layout": [
+    ["Customer", "Order", "OrderDetail", "Item"],
+    [null, "Payment"],
+    ["Cash", "Check", "Credit"]
+  ],
+  "relations": [
+    { "from": "Customer", "to": "Order", "type": "association", "arrow": false, "fromLabel": "1", "toLabel": "0..*" },
+    { "from": "Order", "to": "OrderDetail", "type": "aggregation", "fromLabel": "1", "toLabel": "1..*" },
+    { "from": "OrderDetail", "to": "Item", "type": "association", "fromLabel": "0..*", "toLabel": "1" },
+    { "from": "Order", "to": "Payment", "type": "association", "arrow": false, "fromLabel": "1", "toLabel": "1..*" },
+    { "from": "Cash", "to": "Payment", "type": "generalization" },
+    { "from": "Check", "to": "Payment", "type": "generalization" },
+    { "from": "Credit", "to": "Payment", "type": "generalization" }
+  ]
+}

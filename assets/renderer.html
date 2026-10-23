@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  html, body { margin: 0; background: #ffffff; }
+  svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+<script id="model" type="application/json">__MODEL__</script>
+<script>
+const model = JSON.parse(document.getElementById('model').textContent);
+
+const STYLE = {
+  fill: '#7acff5',
+  ink: '#000000',
+  family: 'Arial, Helvetica, sans-serif',
+  fontSize: 11,
+  lineH: 15,
+  padX: 2,
+  compartmentPad: 4,
+  emptyCompartment: 25,
+  headLen: 13,
+  headHalf: 6,
+  diamondLen: 22,
+  labelH: 8,
+  dash: '5 5',
+};
+
+const LAYOUT = {
+  margin: 40,
+  colGap: 24,
+  linkGap: 64,
+  rowGap: 80,
+  minCol: 40,
+  laneGap: 40,
+  laneStep: 16,
+  ...(model.spacing || {}),
+};
+
+const TYPES = {
+  generalization: { head: 'triangle', fill: '#ffffff' },
+  realization: { head: 'triangle', fill: STYLE.fill, dashed: true },
+  dependency: { head: 'open', dashed: true },
+  association: { head: 'open' },
+  aggregation: { tail: 'diamond', fill: '#ffffff' },
+  composition: { tail: 'diamond', fill: STYLE.ink },
+};
+
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('diagram');
+const ctx = document.createElement('canvas').getContext('2d');
+
+const asRow = r => (typeof r === 'string' ? { text: r } : r);
+const font = (bold, italic) => `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${STYLE.fontSize}px ${STYLE.family}`;
+const measure = (text, f) => { ctx.font = f; return ctx.measureText(text).width; };
+
+const boxes = new Map(model.classes.map(c => {
+  const kind = c.kind || 'class';
+  return [c.name, {
+    name: c.name,
+    italic: kind === 'abstract',
+    stereotype: c.stereotype || (kind === 'interface' ? 'Interface' : null),
+    attrs: (c.attributes || []).map(asRow),
+    ops: (c.operations || []).map(asRow),
+  }];
+}));
+
+function fit(b) {
+  b.nameH = STYLE.lineH * (b.stereotype ? 2 : 1);
+  const widths = [measure(b.name, font(true, b.italic)) + 20];
+  if (b.stereotype) widths.push(measure(`<<${b.stereotype}>>`, font(false, false)) + 20);
+  [...b.attrs, ...b.ops].forEach(r => widths.push(measure(r.text, font(false, r.abstract)) + STYLE.padX + 10));
+  b.w = Math.ceil(Math.max(...widths));
+  const lists = [b.attrs, b.ops].filter(list => list.length);
+  b.h = b.nameH + (lists.length
+    ? lists.reduce((h, list) => h + STYLE.lineH * list.length + STYLE.compartmentPad, 0)
+    : STYLE.emptyCompartment);
+}
+
+boxes.forEach(fit);
+(model.sameWidth || []).forEach(group => {
+  const list = group.map(name => boxes.get(name));
+  const w = Math.max(...list.map(b => b.w));
+  list.forEach(b => { b.w = w; });
+});
+
+const cells = model.layout.map((row, r) => {
+  let col = 0;
+  const out = [];
+  row.forEach(cell => {
+    if (cell === null) {
+      col += 1;
+      return;
+    }
+    const { name, span = 1 } = typeof cell === 'string' ? { name: cell } : cell;
+    out.push({ box: boxes.get(name), row: r, col, span });
+    col += span;
+  });
+  return out;
+});
+const placed = cells.flat();
+const ncols = Math.max(...model.layout.map(row => row.reduce((n, cell) => n + ((cell && cell.span) || 1), 0)));
+
+const relations = model.relations || [];
+const cellOf = new Map(placed.map(c => [c.box.name, c]));
+const gapAfter = Array(ncols).fill(LAYOUT.colGap);
+relations.filter(r => !r.route).forEach(r => {
+  const [left, right] = [cellOf.get(r.from), cellOf.get(r.to)].sort((a, b) => a.col - b.col);
+  if (left.row === right.row && left.col + left.span === right.col) {
+    gapAfter[right.col - 1] = Math.max(gapAfter[right.col - 1], LAYOUT.linkGap);
+  }
+});
+
+const sum = list => list.reduce((a, b) => a + b, 0);
+const colW = Array(ncols).fill(LAYOUT.minCol);
+placed.filter(c => c.span === 1).forEach(c => { colW[c.col] = Math.max(colW[c.col], c.box.w); });
+const spanWidth = (col, span) => sum(colW.slice(col, col + span)) + sum(gapAfter.slice(col, col + span - 1));
+placed.filter(c => c.span > 1).forEach(c => {
+  const extra = c.box.w - spanWidth(c.col, c.span);
+  if (extra > 0) for (let i = c.col; i < c.col + c.span; i++) colW[i] += Math.ceil(extra / c.span);
+});
+const rowH = cells.map(row => Math.max(0, ...row.map(c => c.box.h)));
+
+const laneSpace = n => (n ? LAYOUT.laneGap + (n - 1) * LAYOUT.laneStep : 0);
+const leftLanes = relations.filter(r => r.route === 'left').length;
+const rightLanes = relations.filter(r => r.route === 'right').length;
+const originX = LAYOUT.margin + laneSpace(leftLanes);
+
+const colX = [];
+colW.reduce((x, w, i) => { colX[i] = x; return x + w + gapAfter[i]; }, originX);
+const rowY = [];
+rowH.reduce((y, h, i) => { rowY[i] = y; return y + h + LAYOUT.rowGap; }, LAYOUT.margin);
+
+placed.forEach(c => {
+  const mid = colX[c.col] + spanWidth(c.col, c.span) / 2;
+  c.box.x = Math.round(mid - c.box.w / 2);
+  c.box.y = rowY[c.row];
+  c.box.row = c.row;
+});
+
+const contentRight = colX[ncols - 1] + colW[ncols - 1];
+const width = contentRight + laneSpace(rightLanes) + LAYOUT.margin;
+const height = rowY[rowY.length - 1] + rowH[rowH.length - 1] + LAYOUT.margin;
+svg.setAttribute('width', width);
+svg.setAttribute('height', height);
+svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+const center = b => [b.x + b.w / 2, b.y + b.h / 2];
+
+const links = relations.map(rel => {
+  const from = boxes.get(rel.from);
+  const to = boxes.get(rel.to);
+  let sides;
+  if (rel.route) sides = [rel.route, rel.route];
+  else if (from.row === to.row) sides = to.x > from.x ? ['right', 'left'] : ['left', 'right'];
+  else sides = to.row < from.row ? ['top', 'bottom'] : ['bottom', 'top'];
+  return { rel, from, to, ends: [{ box: from, side: sides[0], other: to }, { box: to, side: sides[1], other: from }] };
+});
+
+const sideGroups = new Map();
+links.forEach(l => l.ends.forEach(e => {
+  const key = `${e.box.name} ${e.side}`;
+  if (!sideGroups.has(key)) sideGroups.set(key, []);
+  sideGroups.get(key).push(e);
+}));
+
+sideGroups.forEach(list => {
+  const axis = list[0].side === 'top' || list[0].side === 'bottom' ? 0 : 1;
+  list.sort((a, b) => center(a.other)[axis] - center(b.other)[axis]);
+  list.forEach((e, i) => {
+    const t = (2 * i + 1) / (2 * list.length);
+    const b = e.box;
+    e.alone = list.length === 1;
+    if (e.side === 'top') e.point = [Math.round(b.x + b.w * t), b.y];
+    if (e.side === 'bottom') e.point = [Math.round(b.x + b.w * t), b.y + b.h];
+    if (e.side === 'left') e.point = [b.x, Math.round(b.y + b.h * t)];
+    if (e.side === 'right') e.point = [b.x + b.w, Math.round(b.y + b.h * t)];
+  });
+});
+
+let leftLane = 0;
+let rightLane = 0;
+links.forEach(l => {
+  const [a, b] = l.ends;
+  if (!l.rel.route && l.from.row === l.to.row && a.alone && b.alone) {
+    const y = l.from.y + Math.round(Math.min(l.from.h, l.to.h) / 2);
+    a.point[1] = y;
+    b.point[1] = y;
+  }
+  if (l.rel.route === 'right') {
+    const x = contentRight + LAYOUT.laneGap + LAYOUT.laneStep * rightLane++;
+    l.points = [a.point, [x, a.point[1]], [x, b.point[1]], b.point];
+  } else if (l.rel.route === 'left') {
+    const x = originX - LAYOUT.laneGap - LAYOUT.laneStep * leftLane++;
+    l.points = [a.point, [x, a.point[1]], [x, b.point[1]], b.point];
+  } else {
+    if (Math.abs(a.point[0] - b.point[0]) <= 2) b.point[0] = a.point[0];
+    if (Math.abs(a.point[1] - b.point[1]) <= 2) b.point[1] = a.point[1];
+    l.points = [a.point, b.point];
+  }
+});
+
+function el(tag, attrs, parent = svg) {
+  const node = document.createElementNS(NS, tag);
+  Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+  parent.appendChild(node);
+  return node;
+}
+
+function text(parent, value, x, y, attrs = {}) {
+  const node = el('text', { x, y, fill: STYLE.ink, 'font-family': STYLE.family, 'font-size': STYLE.fontSize, ...attrs }, parent);
+  node.textContent = value;
+  return node;
+}
+
+const fmt = points => points.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(' ');
+
+function unit(from, to) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const len = Math.hypot(dx, dy) || 1;
+  return [dx / len, dy / len];
+}
+
+function drawClass(b) {
+  const g = el('g', {});
+  el('rect', { x: b.x + 0.5, y: b.y + 0.5, width: b.w, height: b.h, fill: STYLE.fill, stroke: STYLE.ink, 'shape-rendering': 'crispEdges' }, g);
+  const midX = b.x + b.w / 2;
+  if (b.stereotype) text(g, `<<${b.stereotype}>>`, midX, b.y + 12, { 'text-anchor': 'middle' });
+  text(g, b.name, midX, b.y + b.nameH - 3, {
+    'font-weight': 'bold',
+    'font-style': b.italic ? 'italic' : 'normal',
+    'text-anchor': 'middle',
+  });
+  let top = b.y + b.nameH;
+  if (!b.attrs.length && !b.ops.length) {
+    el('line', { x1: b.x, y1: top + 0.5, x2: b.x + b.w + 1, y2: top + 0.5, stroke: STYLE.ink, 'shape-rendering': 'crispEdges' }, g);
+  }
+  [b.attrs, b.ops].filter(list => list.length).forEach(list => {
+    el('line', { x1: b.x, y1: top + 0.5, x2: b.x + b.w + 1, y2: top + 0.5, stroke: STYLE.ink, 'shape-rendering': 'crispEdges' }, g);
+    list.forEach((r, i) => {
+      const baseline = top + 14 + STYLE.lineH * i;
+      text(g, r.text, b.x + STYLE.padX, baseline, { 'font-style': r.abstract ? 'italic' : 'normal' });
+      if (r.static) {
+        const w = measure(r.text, font(false, r.abstract));
+        el('line', { x1: b.x + STYLE.padX, y1: baseline + 1.5, x2: b.x + STYLE.padX + w, y2: baseline + 1.5, stroke: STYLE.ink, 'shape-rendering': 'crispEdges' }, g);
+      }
+    });
+    top += STYLE.lineH * list.length + STYLE.compartmentPad;
+  });
+}
+
+function marker(kind, fill, tip, [ux, uy]) {
+  if (!kind) return { len: 0 };
+  const at = d => [tip[0] + ux * d, tip[1] + uy * d];
+  const sides = (p, d) => [[p[0] - uy * d, p[1] + ux * d], [p[0] + uy * d, p[1] - ux * d]];
+  if (kind === 'diamond') {
+    const [a, b] = sides(at(STYLE.diamondLen / 2), STYLE.headHalf);
+    const far = at(STYLE.diamondLen);
+    return { len: STYLE.diamondLen, cut: far, draw: () => el('polygon', { points: fmt([tip, a, far, b]), fill, stroke: STYLE.ink }) };
+  }
+  const [a, b] = sides(at(STYLE.headLen), STYLE.headHalf);
+  if (kind === 'triangle') {
+    return { len: STYLE.headLen, cut: at(STYLE.headLen), draw: () => el('polygon', { points: fmt([tip, a, b]), fill, stroke: STYLE.ink }) };
+  }
+  return { len: STYLE.headLen, draw: () => el('polyline', { points: fmt([a, tip, b]), fill: 'none', stroke: STYLE.ink }) };
+}
+
+function endLabel(value, end, [ux, uy], markerLen) {
+  if (!value) return;
+  const w = measure(value, font(false, false));
+  const h = STYLE.labelH;
+  const [nx, ny] = [uy, -ux];
+  const along = (markerLen ? markerLen + 4 : 10) + (Math.abs(ux) * w + Math.abs(uy) * h) / 2;
+  const across = (markerLen ? 7 : 4) + (Math.abs(nx) * w + Math.abs(ny) * h) / 2;
+  text(svg, value, end[0] + ux * along + nx * across + 0.5, end[1] + uy * along + ny * across + h / 2, { 'text-anchor': 'middle' });
+}
+
+function drawLink(l) {
+  const type = TYPES[l.rel.type];
+  const pts = l.points;
+  const last = pts.length - 1;
+  const intoFrom = unit(pts[0], pts[1]);
+  const intoTo = unit(pts[last], pts[last - 1]);
+  const tail = marker(type.tail, type.fill, pts[0], intoFrom);
+  const head = marker(l.rel.arrow === false ? null : type.head, type.fill, pts[last], intoTo);
+  el('polyline', {
+    points: fmt([tail.cut || pts[0], ...pts.slice(1, last), head.cut || pts[last]]),
+    fill: 'none',
+    stroke: STYLE.ink,
+    ...(type.dashed ? { 'stroke-dasharray': STYLE.dash } : {}),
+  });
+  [tail, head].forEach(m => m.draw && m.draw());
+  endLabel(l.rel.fromLabel, pts[0], intoFrom, tail.len);
+  endLabel(l.rel.toLabel, pts[last], intoTo, head.len);
+}
+
+function hitsBox([x1, y1], [x2, y2], b) {
+  const steps = Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 2);
+  for (let i = 0; i <= steps; i++) {
+    const x = x1 + ((x2 - x1) * i) / steps;
+    const y = y1 + ((y2 - y1) * i) / steps;
+    if (x > b.x + 1 && x < b.x + b.w - 1 && y > b.y + 1 && y < b.y + b.h - 1) return true;
+  }
+  return false;
+}
+
+const warnings = [];
+links.forEach(l => l.points.slice(1).forEach((p, i) => boxes.forEach(b => {
+  if (b !== l.from && b !== l.to && hitsBox(l.points[i], p, b)) warnings.push(`${l.rel.from} -> ${l.rel.to} crosses ${b.name}`);
+})));
+sideGroups.forEach((list, key) => {
+  const b = list[0].box;
+  const len = list[0].side === 'top' || list[0].side === 'bottom' ? b.w : b.h;
+  if (list.length > 1 && len / list.length < 2 * STYLE.headHalf + 6) warnings.push(`too many lines on ${key} side, arrowheads may touch`);
+});
+window.diagramWarnings = [...new Set(warnings)];
+window.diagramWarnings.forEach(w => console.warn(w));
+svg.setAttribute('data-warnings', JSON.stringify(window.diagramWarnings));
+
+boxes.forEach(drawClass);
+links.forEach(drawLink);
+</script>
+</body>
+</html>

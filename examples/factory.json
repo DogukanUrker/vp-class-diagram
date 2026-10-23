@@ -1,0 +1,273 @@
+{
+  "title": "Factory Class Diagram",
+  "classes": [
+    {
+      "name": "CarManufacturer",
+      "kind": "abstract",
+      "operations": [
+        "+orderCar(type : String) : Car",
+        {
+          "text": "#createCar(type : String) : Car",
+          "abstract": true
+        }
+      ]
+    },
+    {
+      "name": "ToyotaManufacturer",
+      "operations": [
+        "#createCar(type : String) : Car"
+      ]
+    },
+    {
+      "name": "MercedesManufacturer",
+      "operations": [
+        "#createCar(type : String) : Car"
+      ]
+    },
+    {
+      "name": "RenaultManufacturer",
+      "operations": [
+        "#createCar(type : String) : Car"
+      ]
+    },
+    {
+      "name": "ToyotaSedan",
+      "operations": [
+        "+ToyotaSedan()"
+      ]
+    },
+    {
+      "name": "ToyotaHatchback",
+      "operations": [
+        "+ToyotaHatchback()"
+      ]
+    },
+    {
+      "name": "ToyotaSUV",
+      "operations": [
+        "+ToyotaSUV()"
+      ]
+    },
+    {
+      "name": "MercedesSedan",
+      "operations": [
+        "+MercedesSedan()"
+      ]
+    },
+    {
+      "name": "MercedesHatchback",
+      "operations": [
+        "+MercedesHatchback()"
+      ]
+    },
+    {
+      "name": "MercedesSUV",
+      "operations": [
+        "+MercedesSUV()"
+      ]
+    },
+    {
+      "name": "RenaultSedan",
+      "operations": [
+        "+RenaultSedan()"
+      ]
+    },
+    {
+      "name": "RenaultHatchback",
+      "operations": [
+        "+RenaultHatchback()"
+      ]
+    },
+    {
+      "name": "RenaultSUV",
+      "operations": [
+        "+RenaultSUV()"
+      ]
+    },
+    {
+      "name": "Car",
+      "kind": "abstract",
+      "attributes": [
+        "-modelName : String",
+        "-weight : double",
+        "-acceleration : double",
+        "-topSpeed : int",
+        "-price : double",
+        "-originCountry : String",
+        "-productionTime : String",
+        "-deliveryTime : String"
+      ],
+      "operations": [
+        "#Car(modelName : String, weight : double, acceleration : double, topSpeed : int, price : double, originCountry : String, productionTime : String, deliveryTime : String)",
+        "+display()"
+      ]
+    }
+  ],
+  "layout": [
+    [
+      null,
+      null,
+      null,
+      null,
+      "CarManufacturer"
+    ],
+    [
+      null,
+      "ToyotaManufacturer",
+      null,
+      null,
+      "MercedesManufacturer",
+      null,
+      null,
+      "RenaultManufacturer"
+    ],
+    [
+      "ToyotaSedan",
+      "ToyotaHatchback",
+      "ToyotaSUV",
+      "MercedesSedan",
+      "MercedesHatchback",
+      "MercedesSUV",
+      "RenaultSedan",
+      "RenaultHatchback",
+      "RenaultSUV"
+    ],
+    [
+      {
+        "name": "Car",
+        "span": 9
+      }
+    ]
+  ],
+  "sameWidth": [
+    [
+      "ToyotaManufacturer",
+      "MercedesManufacturer",
+      "RenaultManufacturer"
+    ],
+    [
+      "ToyotaSedan",
+      "ToyotaHatchback",
+      "ToyotaSUV",
+      "MercedesSedan",
+      "MercedesHatchback",
+      "MercedesSUV",
+      "RenaultSedan",
+      "RenaultHatchback",
+      "RenaultSUV"
+    ]
+  ],
+  "relations": [
+    {
+      "from": "ToyotaManufacturer",
+      "to": "CarManufacturer",
+      "type": "generalization"
+    },
+    {
+      "from": "MercedesManufacturer",
+      "to": "CarManufacturer",
+      "type": "generalization"
+    },
+    {
+      "from": "RenaultManufacturer",
+      "to": "CarManufacturer",
+      "type": "generalization"
+    },
+    {
+      "from": "ToyotaSedan",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "ToyotaHatchback",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "ToyotaSUV",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "MercedesSedan",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "MercedesHatchback",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "MercedesSUV",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "RenaultSedan",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "RenaultHatchback",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "RenaultSUV",
+      "to": "Car",
+      "type": "generalization"
+    },
+    {
+      "from": "ToyotaManufacturer",
+      "to": "ToyotaSedan",
+      "type": "dependency"
+    },
+    {
+      "from": "ToyotaManufacturer",
+      "to": "ToyotaHatchback",
+      "type": "dependency"
+    },
+    {
+      "from": "ToyotaManufacturer",
+      "to": "ToyotaSUV",
+      "type": "dependency"
+    },
+    {
+      "from": "MercedesManufacturer",
+      "to": "MercedesSedan",
+      "type": "dependency"
+    },
+    {
+      "from": "MercedesManufacturer",
+      "to": "MercedesHatchback",
+      "type": "dependency"
+    },
+    {
+      "from": "MercedesManufacturer",
+      "to": "MercedesSUV",
+      "type": "dependency"
+    },
+    {
+      "from": "RenaultManufacturer",
+      "to": "RenaultSedan",
+      "type": "dependency"
+    },
+    {
+      "from": "RenaultManufacturer",
+      "to": "RenaultHatchback",
+      "type": "dependency"
+    },
+    {
+      "from": "RenaultManufacturer",
+      "to": "RenaultSUV",
+      "type": "dependency"
+    },
+    {
+      "from": "CarManufacturer",
+      "to": "Car",
+      "type": "dependency",
+      "route": "right"
+    }
+  ]
+}
