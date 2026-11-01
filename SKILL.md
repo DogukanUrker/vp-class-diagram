@@ -1,6 +1,6 @@
 ---
 name: vp-class-diagram
-description: draw a uml class diagram of java code as an html page that looks exactly like visual paradigm (vp) - same blue boxes, text, straight lines and vp's exact arrowheads (white triangle for extends, blue for implements, white / black diamonds, multiplicity labels). use this whenever the user asks for a class diagram, uml diagram, "the diagram for this lab", a visual paradigm / vp style diagram, or wants to see how their java classes connect - even if they don't say "uml" or "vp". works great for design pattern homework (factory, decorator, observer, strategy, ...) and any other java code. also use it to change or fix a diagram.html made before.
+description: Use when the user asks for a class diagram or uml diagram of java code, a visual paradigm (vp) style diagram, "the diagram for this lab", or wants to see how their java classes connect, even if they don't say uml or vp. Also use it to change or fix a diagram.html made before. Draws an html page that looks exactly like vp output - same blue boxes, text, straight lines and vp's arrowheads (white triangle for extends, blue for implements, white / black diamonds, multiplicity labels, X for a one-way link). Works for design pattern homework (factory, decorator, observer, strategy, ...) and any other java code.
 ---
 
 # vp class diagram
@@ -20,11 +20,12 @@ do not hand-write svg or change the renderer's style to "improve" it. the look w
 2. **write the model** as json in your scratchpad, not in the project. the format and the rules are below.
 3. **build:**
    ```bash
-   python3 -I ~/.claude/skills/vp-class-diagram/scripts/build.py <model.json> <project>/diagram.html
+   python -I <skill-dir>/scripts/build.py <model.json> <project>/diagram.html
    ```
+   `<skill-dir>` is the folder that holds this SKILL.md. use `python3` on macos or linux.
    put `diagram.html` next to `src`, never inside it. projects like this are often handed in as a zip of `src/*.java`, so a file inside `src` could end up in the submission. the script checks the model first (unknown names, missing boxes, bad types) and tells you what to fix. then it takes a screenshot by itself with headless chrome. it writes `diagram.png` next to the html and prints any layout warnings. this way nobody has to take the screenshot by hand.
 4. **check it** (see "checking"), fix the layout, and build again until it is clean.
-5. **show it:** run `open <project>/diagram.html`, and tell the user where `diagram.png` is. then tell them in a few short lines what the diagram shows, and anything you left out on purpose.
+5. **show it:** open `<project>/diagram.html` in a browser (`start` on windows, `open` on macos), and tell the user where `diagram.png` is. then tell them in a few short lines what the diagram shows, and anything you left out on purpose.
 
 if `diagram.html` already exists and the user wants a change, the old model is inside it, in the `<script id="model">` block. copy it out, edit it, and build again.
 
@@ -59,6 +60,7 @@ if `diagram.html` already exists and the user wants a change, the old model is i
 - `relations[].type`: `generalization`, `realization`, `dependency`, `association`, `aggregation`, `composition`. for aggregation and composition, `from` is the whole (the class with the field) and `to` is the part. the diamond is drawn at `from`.
 - `fromLabel` / `toLabel` (optional) put a multiplicity like `"1"` or `"0..*"` next to that end of the line.
 - `"arrow": false` (optional) turns off the arrowhead of an `association`, for a plain line.
+- `"notNavigable": "from"` (optional, `association` only) draws an X at that end, for a one-way link. `"from"` puts the X on the field owner (the `Car` end of `Car` -> `Tire[]`) and keeps the arrow at `to`. `"to"` puts the X on the arrow end and drops the arrow. leave it off by default, so the existing examples keep their look.
 - `route` (optional, `"left"` / `"right"`) sends a long line around the side of the diagram instead of through it.
 - `spacing` (optional) overrides `colGap`, `rowGap`, `linkGap`, `margin`.
 
@@ -67,6 +69,7 @@ full examples you can copy from:
 - `examples/decorator.json`: a class that both extends and has a field of the same type (two lines between one pair)
 - `examples/observer.json`: interfaces, realizations, an association, links between boxes in the same row. `Subject` -> `Observer` is a dependency because `registerObserver(o : Observer)` takes one as a parameter.
 - `examples/order.json`: vp's own "order system" tutorial example. it shows aggregation, multiplicity labels, plain and navigable associations, and white generalization triangles.
+- `examples/car-tire.json`: a one-way link. `Car` has `Tire[]`, so the X sits on the `Car` end, with `0..*` at `Tire`.
 
 ## java to vp text
 
@@ -103,6 +106,7 @@ vp writes members without a space after the visibility sign, and leaves out `voi
 | A only uses B: `new B()`, a parameter, a return type, a local variable | `dependency` A to B | dashed line, open arrow at B |
 
 - for a field, `association` is the default. use `aggregation` / `composition` only when the lab doc, the teacher's example or the user asks for diamonds. design pattern books draw the same field both ways, so don't guess. say which one you used, so the user can switch.
+- one-way links: when the lab or user wants the direction shown, add `"notNavigable": "from"` to the association (see the model section). this is the vp look for a field like `Car` -> `Tire[]`. the flag is not automatic, so a two-way pair keeps a plain arrow.
 - multiplicity: a list or array field gets `"toLabel": "0..*"`. don't invent labels for single fields unless the lab or the user wants them.
 
 - a dependency is the weakest line. skip it when the two classes already have another line. also skip it when the target is already a parent or grandparent of the source. for example, `HighMemory(Server server)` needs no dependency to `Server`, because it already extends `Server` through `ResourceDecorator`.
@@ -125,7 +129,7 @@ the build prints `warnings: none` or a list of problems: lines that cross a box,
 
 1. fix every warning (move boxes, add `null` cells, use `route`) and build again.
 2. look at `diagram.png` with the Read tool. it is the exact diagram at 2x scale, so it shows what the user will see. look for long diagonal lines that would be shorter with a better layout, arrowheads that touch, and big empty areas.
-3. to zoom in on small details like arrowheads, crop a copy into your scratchpad: `sips -c <height> <width> --cropOffset <y> <x> diagram.png --out <scratchpad>/crop.png`. png pixels are 2x the layout numbers.
+3. to zoom in on small details like arrowheads, crop a copy into your scratchpad. on macos: `sips -c <height> <width> --cropOffset <y> <x> diagram.png --out <scratchpad>/crop.png`. on windows, use any image editor. png pixels are 2x the layout numbers.
 4. if the build says `no screenshot` (no chrome found), the html is still fine. open it and ask the user to look at it instead.
 
 ## the style
@@ -139,6 +143,7 @@ these values live in `STYLE` and `TYPES` in `assets/renderer.html`. they were me
 - triangle: 13px long, 13px wide, 1px outline. **white** for generalization (extends), **box blue** for realization (implements). vp's own pictures show both. a diagram with only interfaces shows only blue triangles, so don't copy that look into a diagram with abstract classes.
 - open arrow (dependency, association): 13px long, 6px out on each side
 - diamond (aggregation white, composition black): 22px long, 13px wide, at the whole's end
+- X (non-navigable end): about 9px across the line, centred 6px from the box edge. **provisional**: sized from a blurry photo, not a clean vp screenshot (see the `shortcut` comment in `assets/renderer.html`). measure it from a real vp screenshot before you trust it.
 - multiplicity labels: arial 11px, beside the end of the line, about 10px from the box (further when there's an arrowhead or diamond)
 - dashes: 5px on, 5px off
 - lines are straight. each line has its own arrowhead, and lines don't merge. vp's tutorial calls this "separate target" style and shows it as official.

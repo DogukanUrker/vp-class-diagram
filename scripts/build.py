@@ -38,6 +38,10 @@ def check(model):
             errors.append(f"{label}: unknown type '{r.get('type')}'")
         if r.get("route") not in ROUTES:
             errors.append(f"{label}: route must be 'left' or 'right'")
+        if r.get("notNavigable") not in (None, "from", "to"):
+            errors.append(f"{label}: notNavigable must be 'from' or 'to'")
+        if r.get("notNavigable") and r.get("type") != "association":
+            errors.append(f"{label}: notNavigable only applies to association")
         errors += [f"{label}: {key} must be text" for key in ("fromLabel", "toLabel") if key in r and not isinstance(r[key], str)]
 
     for group in model.get("sameWidth", []):

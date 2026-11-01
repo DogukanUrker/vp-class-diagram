@@ -8,6 +8,10 @@ from html import unescape
 from pathlib import Path
 
 CHROME_PATHS = [
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+    "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
@@ -60,7 +64,7 @@ def take(page, out):
             f"--force-device-scale-factor={SCALE}",
             f"--window-size={width},{height}",
             f"--screenshot={out}",
-            page.as_uri(),
+            page.as_uri() + "#shot",
         )
     if not out.exists():
         raise RuntimeError("chrome did not write the screenshot")

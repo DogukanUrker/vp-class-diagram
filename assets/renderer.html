@@ -27,6 +27,9 @@ const STYLE = {
   headLen: 13,
   headHalf: 6,
   diamondLen: 22,
+  // shortcut: X size is estimated from a blurry photo, measure it from a clean vp screenshot of a one-way link
+  crossLen: 12,
+  crossHalf: 4.5,
   labelH: 8,
   dash: '5 5',
 };
@@ -149,6 +152,7 @@ const height = rowY[rowY.length - 1] + rowH[rowH.length - 1] + LAYOUT.margin;
 svg.setAttribute('width', width);
 svg.setAttribute('height', height);
 svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+if (location.hash === '#shot') svg.style.margin = '0'; // the screenshot window is at least 491px wide, so centering would clip narrow diagrams
 
 const center = b => [b.x + b.w / 2, b.y + b.h / 2];
 
@@ -264,6 +268,13 @@ function marker(kind, fill, tip, [ux, uy]) {
     const far = at(STYLE.diamondLen);
     return { len: STYLE.diamondLen, cut: far, draw: () => el('polygon', { points: fmt([tip, a, far, b]), fill, stroke: STYLE.ink }) };
   }
+  if (kind === 'cross') {
+    const c = at(STYLE.crossLen / 2);
+    const h = STYLE.crossHalf;
+    const [nx, ny] = [-uy, ux];
+    const arm = (dx, dy) => [[c[0] + dx * h, c[1] + dy * h], [c[0] - dx * h, c[1] - dy * h]];
+    return { len: STYLE.crossLen, draw: () => [arm(ux + nx, uy + ny), arm(ux - nx, uy - ny)].forEach(s => el('polyline', { points: fmt(s), fill: 'none', stroke: STYLE.ink })) };
+  }
   const [a, b] = sides(at(STYLE.headLen), STYLE.headHalf);
   if (kind === 'triangle') {
     return { len: STYLE.headLen, cut: at(STYLE.headLen), draw: () => el('polygon', { points: fmt([tip, a, b]), fill, stroke: STYLE.ink }) };
@@ -287,8 +298,10 @@ function drawLink(l) {
   const last = pts.length - 1;
   const intoFrom = unit(pts[0], pts[1]);
   const intoTo = unit(pts[last], pts[last - 1]);
-  const tail = marker(type.tail, type.fill, pts[0], intoFrom);
-  const head = marker(l.rel.arrow === false ? null : type.head, type.fill, pts[last], intoTo);
+  const tailKind = l.rel.notNavigable === 'from' ? 'cross' : type.tail;
+  const headKind = l.rel.notNavigable === 'to' ? 'cross' : l.rel.arrow === false ? null : type.head;
+  const tail = marker(tailKind, type.fill, pts[0], intoFrom);
+  const head = marker(headKind, type.fill, pts[last], intoTo);
   el('polyline', {
     points: fmt([tail.cut || pts[0], ...pts.slice(1, last), head.cut || pts[last]]),
     fill: 'none',

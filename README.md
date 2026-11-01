@@ -39,6 +39,7 @@ or run `/vp-class-diagram`. claude does these steps:
 | `extends` | solid line, white triangle |
 | `implements` | dashed line, blue triangle |
 | a field of another class | solid line, open arrow (or a diamond for aggregation / composition) |
+| a one-way field link (`notNavigable`) | solid line, open arrow, and an X at the field's owner |
 | `new`, parameters, return types | dashed line, open arrow |
 
 it also shows:

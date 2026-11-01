@@ -1,0 +1,19 @@
+{
+  "title": "Car Tire Class Diagram",
+  "classes": [
+    {
+      "name": "Car",
+      "attributes": ["-tires : Tire[]"],
+      "operations": ["+Car()", "+getTires() : Tire[]"]
+    },
+    {
+      "name": "Tire",
+      "attributes": ["-pressure : double"],
+      "operations": ["+Tire(pressure : double)", "+getPressure() : double"]
+    }
+  ],
+  "layout": [["Car", "Tire"]],
+  "relations": [
+    { "from": "Car", "to": "Tire", "type": "association", "notNavigable": "from", "toLabel": "0..*" }
+  ]
+}
